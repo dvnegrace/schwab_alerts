@@ -1,0 +1,14 @@
+# Core HTTP requests for API calls (Polygon, Telegram, Discord, Slack, IFTTT)
+requests>=2.32.4
+
+# AWS services - S3 for positions file storage, DynamoDB for alert state
+boto3>=1.39.12
+
+# Twilio for voice/SMS alerts
+twilio>=9.7.0
+
+# Python utilities for date handling
+python-dateutil>=2.9.0
+
+# Type hints support for older Python versions
+typing-extensions>=4.14.1

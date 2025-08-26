@@ -1,0 +1,167 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+python/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows  
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# AWS/Lambda deployment packages
+*.zip
+lambda-out.json
+out.json
+output.json
+response.json
+
+# Sensitive configuration files (KEEP YOUR SECRETS SAFE!)
+.env
+.env.local
+.env.*.local
+config.ini
+secrets.json
+credentials.json
+
+# AWS Credentials (never commit these!)
+.aws/
+aws-credentials.json
+
+# API Keys and tokens (never commit these!)
+api-keys.txt
+tokens.txt
+telegram-token.txt
+twilio-credentials.txt
+
+# Large data files
+*.csv
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.backup
+*.bak
+*.orig
+*.tmp
+
+# Third-party packages (will be installed via pip)
+boto3*/
+botocore*/
+requests*/
+twilio*/
+urllib3*/
+certifi*/
+charset_normalizer*/
+dateutil*/
+s3transfer*/
+six.py
+six-*/
+typing_extensions*/
+python_dateutil*/
+idna*/
+jmespath*/
+
+# Lambda layers
+*-layer.zip
+python/
+
+# AWS/DynamoDB files  
+ddb-policy.json
+trust.json
+
+# Zone identifier files (Windows)
+*:Zone.Identifier
+
+# Compressed files
+*.tar.gz
+*.zip
+SchwabAlerts*.zip
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local test outputs
+test_output/
+debug_logs/
