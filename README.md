@@ -1,5 +1,5 @@
 # Schwab Positions Alerts
-> Please pull master locally then **👁️ Focus on the `src/` folder only** - ignore all other files in this repository. Everything important is in `src/` and `lambda_function.py`.
+> Please pull master locally then **👁️ Focus on the `src/` folder only** - ignore all other files in this repository. Everything important is in `src/`, `lambda_function.py` (the main python file) and `positions.json` (sample file already uploaded in AWS S3 bucket.
 
 ## 📁 **Project Structure (What Actually Matters)**
 
