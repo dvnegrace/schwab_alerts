@@ -1,6 +1,5 @@
 # Schwab Positions Alerts
-
-> **👁️ Focus on the `src/` folder only** - ignore all other files in this repository. Everything important is in `src/` and `lambda_function.py`.
+> Please pull master locally then **👁️ Focus on the `src/` folder only** - ignore all other files in this repository. Everything important is in `src/` and `lambda_function.py`.
 
 ## 📁 **Project Structure (What Actually Matters)**
 
