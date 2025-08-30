@@ -34,7 +34,12 @@ class Config:
     
     AWS_REGION: str = os.getenv('AWS_REGION', 'us-east-1')
     
-    ALERT_THRESHOLD_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_PERCENT', '6.0'))
+    ALERT_THRESHOLD_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_PERCENT', '7.0'))
+    
+    # Additional basic alert thresholds
+    ALERT_THRESHOLD_10_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_10_PERCENT', '10.0'))
+    ALERT_THRESHOLD_12_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_12_PERCENT', '12.0'))
+    ALERT_THRESHOLD_14_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_14_PERCENT', '14.0'))
     
     # Consecutive seconds alert thresholds
     FIVE_CONSECUTIVE_SECONDS_THRESHOLD_PERCENT: float = float(os.getenv('FIVE_CONSECUTIVE_SECONDS_THRESHOLD_PERCENT', '1.5'))

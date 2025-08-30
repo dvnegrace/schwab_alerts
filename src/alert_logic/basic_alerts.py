@@ -4,31 +4,51 @@ from ..config import Config
 
 logger = logging.getLogger(__name__)
 
-def should_trigger_basic_alert(percent_change: float, alert_directions: List[str]) -> Tuple[bool, str]:
+def should_trigger_basic_alert(percent_change: float, alert_directions: List[str], last_alerted_percent: float = 0) -> Tuple[bool, str]:
     """
     Basic alert filter - triggers when price movement exceeds threshold in matching direction
     
     Args:
         percent_change: Today's percentage change
         alert_directions: List of directions to watch ('up', 'down')
+        last_alerted_percent: The percentage at which we last alerted (default 0)
         
     Returns:
         Tuple of (should_alert, reason)
     """
-    # Check if movement matches position types and exceeds threshold
-    if percent_change >= Config.ALERT_THRESHOLD_PERCENT and 'up' in alert_directions:
-        # Stock moved up and we have calls
-        reason = f"+{percent_change:.2f}% upward move matches CALL positions (basic threshold)"
-        return True, reason
-        
-    elif percent_change <= -Config.ALERT_THRESHOLD_PERCENT and 'down' in alert_directions:
-        # Stock moved down and we have puts  
-        reason = f"{percent_change:.2f}% downward move matches PUT positions (basic threshold)"
-        return True, reason
+    # Check upward movements for calls
+    if 'up' in alert_directions and percent_change > 0:
+        if percent_change >= Config.ALERT_THRESHOLD_14_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_14_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (14% threshold)"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_12_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_12_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (12% threshold)"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_10_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_10_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (10% threshold)"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (basic threshold)"
+            return True, reason
+    
+    # Check downward movements for puts
+    if 'down' in alert_directions and percent_change < 0:
+        if percent_change <= -Config.ALERT_THRESHOLD_14_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_14_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (14% threshold)"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_12_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_12_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (12% threshold)"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_10_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_10_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (10% threshold)"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (basic threshold)"
+            return True, reason
     
     # No alert triggered
     directions_str = ' and '.join(alert_directions) if alert_directions else 'none'
-    reason = f"change {percent_change:+.2f}% - no alert (watching {directions_str} moves, threshold: ±{Config.ALERT_THRESHOLD_PERCENT}%)"
+    reason = f"change {percent_change:+.2f}% - no new threshold crossed (last alert: {last_alerted_percent:.2f}%)"
     return False, reason
 
 def should_trigger_incremental_alert(current_percent: float, last_alerted_percent: float) -> Tuple[bool, str]:

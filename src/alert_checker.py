@@ -167,8 +167,15 @@ class AlertChecker:
                         # Get alert directions based on position types (calls = up, puts = down)
                         alert_directions = position.get_alert_directions()
                         
+                        # Get last alerted percent for this ticker
+                        last_alerted_percent = 0
+                        if not Config.LOCAL_TESTING_MODE and self.alert_state:
+                            alert_status = self.alert_state.get_alert_status(ticker, snapshot['prev_close'])
+                            if alert_status:
+                                last_alerted_percent = alert_status.get('last_alerted_percent', 0)
+                        
                         # Check if basic alert criteria are met
-                        should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions)
+                        should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions, last_alerted_percent)
                         logger.debug(f"{ticker}: Basic - {basic_reason}")
                         
                         should_alert_this_direction = should_alert_basic
