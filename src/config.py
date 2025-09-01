@@ -36,6 +36,10 @@ class Config:
     
     ALERT_THRESHOLD_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_PERCENT', '7.0'))
     
+    # Retriggering configuration
+    ENABLE_ALERT_RETRIGGERING: bool = os.getenv('ENABLE_ALERT_RETRIGGERING', 'false').lower() == 'true'
+    ALERT_RETRIGGER_COOLDOWN_SECONDS: int = int(os.getenv('ALERT_RETRIGGER_COOLDOWN_SECONDS', '60'))
+    
     # Additional basic alert thresholds
     ALERT_THRESHOLD_10_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_10_PERCENT', '10.0'))
     ALERT_THRESHOLD_12_PERCENT: float = float(os.getenv('ALERT_THRESHOLD_12_PERCENT', '12.0'))
