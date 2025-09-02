@@ -167,15 +167,17 @@ class AlertChecker:
                         # Get alert directions based on position types (calls = up, puts = down)
                         alert_directions = position.get_alert_directions()
                         
-                        # Get last alerted percent for this ticker
+                        # Get last alerted percent and timestamp for this ticker
                         last_alerted_percent = 0
+                        last_alert_timestamp = None
                         if not Config.LOCAL_TESTING_MODE and self.alert_state:
                             alert_status = self.alert_state.get_alert_status(ticker, snapshot['prev_close'])
                             if alert_status:
                                 last_alerted_percent = alert_status.get('last_alerted_percent', 0)
+                                last_alert_timestamp = alert_status.get('timestamp')
                         
                         # Check if basic alert criteria are met
-                        should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions, last_alerted_percent)
+                        should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions, last_alerted_percent, last_alert_timestamp)
                         logger.debug(f"{ticker}: Basic - {basic_reason}")
                         
                         should_alert_this_direction = should_alert_basic
@@ -222,27 +224,26 @@ class AlertChecker:
                                 alert_count = 1
                                 logger.info(f"{ticker}: First alert at {percent_change:.2f}%")
                             else:
-                                # Previously alerted - check if we need incremental alert
+                                # Previously alerted - check if should alert again
                                 last_alerted_percent = alert_status['last_alerted_percent']
-                                alert_count = alert_status['alert_count']
+                                alert_count = alert_status['alert_count'] + 1
                                 
-                                # Check if current percent is at least 5% higher than last alert
-                                percent_increase_since_last = percent_change - last_alerted_percent
-                                
-                                if percent_increase_since_last >= Config.ALERT_THRESHOLD_PERCENT:
+                                # Retrigger is handled in basic_alerts by resetting last_alerted_percent
+                                if "RETRIGGER" in alert_reason:
                                     should_alert = True
-                                    alert_type = "incremental"
-                                    alert_count += 1
-                                    logger.info(f"{ticker}: Incremental alert #{alert_count} - was {last_alerted_percent:.2f}%, now {percent_change:.2f}% (+{percent_increase_since_last:.2f}%)")
+                                    alert_type = "retrigger"
+                                    logger.info(f"{ticker}: Retrigger alert #{alert_count} after cooldown - {percent_change:.2f}%")
                                 else:
-                                    logger.debug(f"{ticker}: No incremental alert needed - was {last_alerted_percent:.2f}%, now {percent_change:.2f}% (+{percent_increase_since_last:.2f}%)")
-                                    results['skipped_details'].append({
-                                        'ticker': ticker,
-                                        'timestamp': alert_status['timestamp'],
-                                        'percent_change': last_alerted_percent
-                                    })
-                                    results['skipped_already_alerted'] += 1
-                                    continue
+                                    # Standard incremental alert check
+                                    percent_increase_since_last = percent_change - last_alerted_percent
+                                    if percent_increase_since_last >= Config.ALERT_THRESHOLD_PERCENT:
+                                        should_alert = True
+                                        alert_type = "incremental"
+                                        logger.info(f"{ticker}: Incremental alert #{alert_count} - was {last_alerted_percent:.2f}%, now {percent_change:.2f}%")
+                                    else:
+                                        logger.debug(f"{ticker}: No alert - already alerted at {last_alerted_percent:.2f}%")
+                                        results['skipped_already_alerted'] += 1
+                                        continue
                         else:
                             # Local testing mode - always alert
                             should_alert = True
