@@ -56,11 +56,12 @@ def get_previous_days(ticker: str) -> Optional[Dict[str, Any]]:
     )
 
 def get_seconds_data(ticker: str) -> Optional[Dict[str, Any]]:
-    """Get seconds data for today"""
+    """Get seconds data for today, with fallback to previous trading day if empty"""
     
     today = datetime.now().strftime('%Y-%m-%d')
     
-    return get_bars_ohlc(
+    # First try today's data
+    data = get_bars_ohlc(
         ticker=ticker,
         multiplier=1,
         timespan="second",
@@ -70,6 +71,27 @@ def get_seconds_data(ticker: str) -> Optional[Dict[str, Any]]:
         sort="desc",
         limit=3600
     )
+    
+    # If no results, try previous trading day (yesterday)
+    if not data or not data.get('results'):
+        logger.info(f"No seconds data for {ticker} on {today}, trying previous trading day")
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        data = get_bars_ohlc(
+            ticker=ticker,
+            multiplier=1,
+            timespan="second",
+            from_date=yesterday,
+            to_date=yesterday,
+            adjusted=True,
+            sort="desc",
+            limit=3600
+        )
+        
+        if data and data.get('results'):
+            logger.info(f"Found seconds data for {ticker} on {yesterday} (previous trading day)")
+    
+    return data
 
 def get_minutes_data(ticker: str) -> Optional[Dict[str, Any]]:
     """Get minutes data for today (last 60 minutes)"""

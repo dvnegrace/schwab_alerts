@@ -103,12 +103,13 @@ class AlertChecker:
             processed_tickers = set()
             tickers_to_process = []
             
-            # Collect unique tickers that need processing
+            # Collect unique tickers that need processing (normalize for Polygon API, skip index tickers)
             for position in positions:
                 ticker = position.underlying
-                if ticker not in processed_tickers:
+                if ticker not in processed_tickers and not ticker.startswith('$'):
                     processed_tickers.add(ticker)
-                    tickers_to_process.append(ticker)
+                    normalized_ticker = self._normalize_ticker_for_polygon(ticker)
+                    tickers_to_process.append(normalized_ticker)
             
             logger.info(f"Starting concurrent data fetch for {len(tickers_to_process)} unique tickers")
             
@@ -173,27 +174,29 @@ class AlertChecker:
                         should_alert_this_direction = should_alert_basic
                         alert_trigger_type = "basic"
                         
-                        # If basic alert didn't trigger, check consecutive seconds alert
-                        if not should_alert_basic:
-                            ticker_seconds_data = seconds_data.get(ticker)
-                            should_alert_consecutive, consecutive_reason = should_trigger_consecutive_seconds_alert(ticker, alert_directions, ticker_seconds_data)
-                            if should_alert_consecutive:
-                                should_alert_this_direction = True
-                                alert_trigger_type = "consecutive_seconds"
-                                logger.info(f"{ticker}: Consecutive seconds - {consecutive_reason}")
-                            else:
-                                logger.debug(f"{ticker}: Consecutive seconds - {consecutive_reason}")
-                        
-                        # If neither basic nor seconds alert triggered, check consecutive minutes alert
-                        if not should_alert_this_direction:
-                            ticker_minutes_data = minutes_data.get(ticker)
-                            should_alert_minutes, minutes_reason = should_trigger_consecutive_minutes_alert(ticker, alert_directions, ticker_minutes_data)
-                            if should_alert_minutes:
-                                should_alert_this_direction = True
-                                alert_trigger_type = "consecutive_minutes"
-                                logger.info(f"{ticker}: Consecutive minutes - {minutes_reason}")
-                            else:
-                                logger.debug(f"{ticker}: Consecutive minutes - {minutes_reason}")
+                        # Skip consecutive checks for index tickers (they don't have minute/second data)
+                        if not ticker.startswith('$'):
+                            # If basic alert didn't trigger, check consecutive seconds alert
+                            if not should_alert_basic:
+                                ticker_seconds_data = seconds_data.get(normalized_ticker)
+                                should_alert_consecutive, consecutive_reason = should_trigger_consecutive_seconds_alert(ticker, alert_directions, ticker_seconds_data)
+                                if should_alert_consecutive:
+                                    should_alert_this_direction = True
+                                    alert_trigger_type = "consecutive_seconds"
+                                    logger.info(f"{ticker}: Consecutive seconds - {consecutive_reason}")
+                                else:
+                                    logger.debug(f"{ticker}: Consecutive seconds - {consecutive_reason}")
+                            
+                            # If neither basic nor seconds alert triggered, check consecutive minutes alert
+                            if not should_alert_this_direction:
+                                ticker_minutes_data = minutes_data.get(normalized_ticker)
+                                should_alert_minutes, minutes_reason = should_trigger_consecutive_minutes_alert(ticker, alert_directions, ticker_minutes_data)
+                                if should_alert_minutes:
+                                    should_alert_this_direction = True
+                                    alert_trigger_type = "consecutive_minutes"
+                                    logger.info(f"{ticker}: Consecutive minutes - {minutes_reason}")
+                                else:
+                                    logger.debug(f"{ticker}: Consecutive minutes - {minutes_reason}")
                         
                         # Check if we should send an alert (first time or incremental)
                         should_alert = should_alert_this_direction
@@ -255,32 +258,33 @@ class AlertChecker:
                                 if position_desc:
                                     print(f"   Positions: {position_desc}")
                                 
-                                # Add recent minute and second percentage changes (no volume)
-                                try:
-                                    # Get most recent minute change from pre-fetched data
-                                    ticker_minutes_data = minutes_data.get(ticker)
-                                    if ticker_minutes_data and ticker_minutes_data.get('results') and len(ticker_minutes_data['results']) >= 2:
-                                        latest_results = list(reversed(ticker_minutes_data['results']))  # Chronological order
-                                        latest_minute = latest_results[-1]
-                                        prev_minute = latest_results[-2]
-                                        minute_change = ((float(latest_minute['c']) - float(prev_minute['c'])) / float(prev_minute['c'])) * 100
-                                        print(f"   📊 Most Recent Minute Change: {minute_change:+.2f}%")
-                                    else:
-                                        print(f"   📊 Most Recent Minute Change: N/A (insufficient data)")
-                                    
-                                    # Get most recent second change from pre-fetched data
-                                    ticker_seconds_data = seconds_data.get(ticker)
-                                    if ticker_seconds_data and ticker_seconds_data.get('results') and len(ticker_seconds_data['results']) >= 2:
-                                        latest_results = list(reversed(ticker_seconds_data['results']))  # Chronological order
-                                        latest_second = latest_results[-1]
-                                        prev_second = latest_results[-2]
-                                        second_change = ((float(latest_second['c']) - float(prev_second['c'])) / float(prev_second['c'])) * 100
-                                        print(f"   ⚡ Most Recent Second Change: {second_change:+.2f}%")
-                                    else:
-                                        print(f"   ⚡ Most Recent Second Change: N/A (insufficient data)")
+                                # Add recent minute and second percentage changes (no volume) - skip for index tickers
+                                if not ticker.startswith('$'):
+                                    try:
+                                        # Get most recent minute change from pre-fetched data
+                                        ticker_minutes_data = minutes_data.get(normalized_ticker)
+                                        if ticker_minutes_data and ticker_minutes_data.get('results') and len(ticker_minutes_data['results']) >= 2:
+                                            latest_results = list(reversed(ticker_minutes_data['results']))  # Chronological order
+                                            latest_minute = latest_results[-1]
+                                            prev_minute = latest_results[-2]
+                                            minute_change = ((float(latest_minute['c']) - float(prev_minute['c'])) / float(prev_minute['c'])) * 100
+                                            print(f"   📊 Most Recent Minute Change: {minute_change:+.2f}%")
+                                        else:
+                                            print(f"   📊 Most Recent Minute Change: N/A (insufficient data)")
                                         
-                                except Exception as e:
-                                    print(f"   📊 Recent Changes: Error fetching data - {e}")
+                                        # Get most recent second change from pre-fetched data
+                                        ticker_seconds_data = seconds_data.get(normalized_ticker)
+                                        if ticker_seconds_data and ticker_seconds_data.get('results') and len(ticker_seconds_data['results']) >= 2:
+                                            latest_results = list(reversed(ticker_seconds_data['results']))  # Chronological order
+                                            latest_second = latest_results[-1]
+                                            prev_second = latest_results[-2]
+                                            second_change = ((float(latest_second['c']) - float(prev_second['c'])) / float(prev_second['c'])) * 100
+                                            print(f"   ⚡ Most Recent Second Change: {second_change:+.2f}%")
+                                        else:
+                                            print(f"   ⚡ Most Recent Second Change: N/A (insufficient data)")
+                                            
+                                    except Exception as e:
+                                        print(f"   📊 Recent Changes: Error fetching data - {e}")
                                 
                                 # Show exact messages that would be sent (no volume)
                                 from .message_formatter import format_alert_message

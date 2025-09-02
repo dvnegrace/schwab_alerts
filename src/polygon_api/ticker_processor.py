@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 from .base_client import RATE_LIMIT_DELAY
 from .custom_bars_ohlc import get_seconds_data, get_previous_days
+from .indices_snapshot import get_index_snapshot
 from ..calculations import calculate_percent_change, calculate_volume_ratio
 
 logger = logging.getLogger(__name__)
@@ -15,8 +16,19 @@ def get_ticker_concurrent(tickers: List[str]) -> Dict[str, Dict]:
     snapshots = {}
     tickers_upper = [t.upper() for t in tickers]
     
-    # Filter out any index tickers (handled by indices client)
+    # Separate index and stock tickers
+    index_tickers = [t for t in tickers_upper if t.startswith('$')]
     stock_tickers = [t for t in tickers_upper if not t.startswith('$')]
+    
+    # Process index tickers
+    if index_tickers:
+        for ticker in index_tickers:
+            snapshot = get_index_snapshot(ticker)
+            if snapshot:
+                snapshots[ticker] = snapshot
+                logger.info(f"✅ Got index snapshot for {ticker}: {snapshot['todays_change_perc']:+.2f}%")
+            else:
+                logger.warning(f"❌ Failed to get index snapshot for {ticker}")
     
     # Process stock tickers concurrently
     if stock_tickers:
@@ -25,13 +37,13 @@ def get_ticker_concurrent(tickers: List[str]) -> Dict[str, Dict]:
     
     # Report results
     found_tickers = set(snapshots.keys())
-    requested_tickers = set(stock_tickers)
+    requested_tickers = set(stock_tickers + index_tickers)
     missing_tickers = requested_tickers - found_tickers
     
     if missing_tickers:
         logger.warning(f"❌ Missing snapshots for {len(missing_tickers)} tickers: {', '.join(sorted(missing_tickers))}")
     
-    logger.info(f"✅ Concurrent processing completed: {len(snapshots)}/{len(stock_tickers)} successful")
+    logger.info(f"✅ Concurrent processing completed: {len(snapshots)}/{len(requested_tickers)} successful")
     return snapshots
 
 def _process_stock_tickers_concurrent(stock_tickers: List[str]) -> Dict[str, Dict]:
