@@ -64,12 +64,12 @@ class ConcurrentAlertProcessor:
             
             logger.debug(f"{ticker}: Starting alert processing ({percent_change:+.2f}%)")
             
-            # Check basic alert first
-            should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions)
+            # Check basic alert first (concurrent processor doesn't track last_alerted_percent or timestamp)
+            should_alert_basic, basic_reason = should_trigger_basic_alert(percent_change, alert_directions, 0, None)
             
             alert_triggered = should_alert_basic
             alert_reason = basic_reason
-            alert_type = "basic"
+            alert_type = "basic" if should_alert_basic else None
             
             # If basic didn't trigger, check seconds and minutes concurrently
             if not should_alert_basic:

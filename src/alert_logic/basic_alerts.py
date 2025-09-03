@@ -1,34 +1,85 @@
 import logging
-from typing import List, Tuple
+from datetime import datetime, timezone, timedelta
+from typing import List, Tuple, Optional
 from ..config import Config
 
 logger = logging.getLogger(__name__)
 
-def should_trigger_basic_alert(percent_change: float, alert_directions: List[str]) -> Tuple[bool, str]:
+def should_trigger_basic_alert(percent_change: float, alert_directions: List[str], last_alerted_percent: float = 0, last_alert_timestamp: Optional[str] = None) -> Tuple[bool, str]:
     """
     Basic alert filter - triggers when price movement exceeds threshold in matching direction
     
     Args:
         percent_change: Today's percentage change
         alert_directions: List of directions to watch ('up', 'down')
+        last_alerted_percent: The percentage at which we last alerted (default 0)
+        last_alert_timestamp: ISO timestamp of last alert for time-based retriggering
         
     Returns:
         Tuple of (should_alert, reason)
     """
-    # Check if movement matches position types and exceeds threshold
-    if percent_change >= Config.ALERT_THRESHOLD_PERCENT and 'up' in alert_directions:
-        # Stock moved up and we have calls
-        reason = f"+{percent_change:.2f}% upward move matches CALL positions (basic threshold)"
-        return True, reason
-        
-    elif percent_change <= -Config.ALERT_THRESHOLD_PERCENT and 'down' in alert_directions:
-        # Stock moved down and we have puts  
-        reason = f"{percent_change:.2f}% downward move matches PUT positions (basic threshold)"
-        return True, reason
+    # If retriggering is enabled and cooldown has passed, reset last_alerted_percent to allow retriggering
+    is_retrigger = False
+    if Config.ENABLE_ALERT_RETRIGGERING and last_alert_timestamp and last_alerted_percent != 0:
+        try:
+            last_alert_time = datetime.fromisoformat(last_alert_timestamp.replace('Z', '+00:00'))
+            time_since_alert = datetime.now(timezone.utc) - last_alert_time
+            if time_since_alert >= timedelta(seconds=Config.ALERT_RETRIGGER_COOLDOWN_SECONDS):
+                logger.debug(f"Retrigger eligible: {time_since_alert.total_seconds():.0f}s since last alert")
+                is_retrigger = True
+                last_alerted_percent = 0  # Reset to allow retriggering at same threshold
+        except Exception as e:
+            logger.warning(f"Error parsing timestamp {last_alert_timestamp}: {e}")
+    
+    # Check upward movements for calls
+    if 'up' in alert_directions and percent_change > 0:
+        if percent_change >= Config.ALERT_THRESHOLD_14_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_14_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (14% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_12_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_12_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (12% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_10_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_10_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (10% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change >= Config.ALERT_THRESHOLD_PERCENT and last_alerted_percent < Config.ALERT_THRESHOLD_PERCENT:
+            reason = f"+{percent_change:.2f}% upward move matches CALL positions (basic threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+    
+    # Check downward movements for puts
+    if 'down' in alert_directions and percent_change < 0:
+        if percent_change <= -Config.ALERT_THRESHOLD_14_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_14_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (14% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_12_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_12_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (12% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_10_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_10_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (10% threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
+        elif percent_change <= -Config.ALERT_THRESHOLD_PERCENT and last_alerted_percent > -Config.ALERT_THRESHOLD_PERCENT:
+            reason = f"{percent_change:.2f}% downward move matches PUT positions (basic threshold)"
+            if is_retrigger:
+                reason += " [RETRIGGER]"
+            return True, reason
     
     # No alert triggered
     directions_str = ' and '.join(alert_directions) if alert_directions else 'none'
-    reason = f"change {percent_change:+.2f}% - no alert (watching {directions_str} moves, threshold: ±{Config.ALERT_THRESHOLD_PERCENT}%)"
+    reason = f"change {percent_change:+.2f}% - no new threshold crossed (last alert: {last_alerted_percent:.2f}%)"
     return False, reason
 
 def should_trigger_incremental_alert(current_percent: float, last_alerted_percent: float) -> Tuple[bool, str]:
