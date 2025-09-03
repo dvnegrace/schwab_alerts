@@ -8,14 +8,15 @@ logger = logging.getLogger(__name__)
 
 def send_discord_alert(ticker: str, percent_change: float, position_desc: str = None, 
                       prev_close: float = None, current_price: float = None, 
-                      volume: int = None, avg_volume: float = None) -> bool:
+                      volume: int = None, avg_volume: float = None, 
+                      detailed_position_desc: str = None) -> bool:
     """Send Discord alert for stock movement"""
     try:
         # Initialize Discord webhook
         if not Config.DISCORD_WEBHOOK_URL:
             raise NotificationError("Discord webhook URL not configured")
         
-        message_body = format_alert_message(ticker, percent_change, prev_close, current_price, volume, avg_volume)
+        message_body = format_alert_message(ticker, percent_change, prev_close, current_price, volume, avg_volume, position_details=detailed_position_desc)
         
         logger.info(f"📱 Sending Discord alert for {ticker}: {message_body}")
         
@@ -51,14 +52,14 @@ def send_discord_alert(ticker: str, percent_change: float, position_desc: str = 
 def send_discord_incremental_alert(ticker: str, last_percent: float, current_percent: float, 
                                   position_desc: str = None, prev_close: float = None, 
                                   current_price: float = None, volume: int = None, 
-                                  avg_volume: float = None) -> bool:
+                                  avg_volume: float = None, detailed_position_desc: str = None) -> bool:
     """Send incremental alert for additional 5% moves"""
     try:
         # Initialize Discord webhook
         if not Config.DISCORD_WEBHOOK_URL:
             raise NotificationError("Discord webhook URL not configured")
         
-        message_body = format_alert_message(ticker, current_percent, prev_close, current_price, volume, avg_volume, is_incremental=True, last_percent=last_percent)
+        message_body = format_alert_message(ticker, current_percent, prev_close, current_price, volume, avg_volume, is_incremental=True, last_percent=last_percent, position_details=detailed_position_desc)
         
         logger.info(f"📱 Sending Discord incremental alert for {ticker}: {message_body}")
         

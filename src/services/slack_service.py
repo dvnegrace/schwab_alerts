@@ -8,14 +8,15 @@ logger = logging.getLogger(__name__)
 
 def send_slack_alert(ticker: str, percent_change: float, position_desc: str = None, 
                     prev_close: float = None, current_price: float = None, 
-                    volume: int = None, avg_volume: float = None) -> bool:
+                    volume: int = None, avg_volume: float = None, 
+                    detailed_position_desc: str = None) -> bool:
     """Send Slack alert for stock movement"""
     try:
         # Initialize Slack webhook
         if not Config.SLACK_WEBHOOK_URL:
             raise NotificationError("Slack webhook URL not configured")
         
-        message_body = format_alert_message(ticker, percent_change, prev_close, current_price, volume, avg_volume)
+        message_body = format_alert_message(ticker, percent_change, prev_close, current_price, volume, avg_volume, position_details=detailed_position_desc)
         
         logger.info(f"📱 Sending Slack alert for {ticker}: {message_body}")
         
@@ -51,14 +52,14 @@ def send_slack_alert(ticker: str, percent_change: float, position_desc: str = No
 def send_slack_incremental_alert(ticker: str, last_percent: float, current_percent: float, 
                                 position_desc: str = None, prev_close: float = None, 
                                 current_price: float = None, volume: int = None, 
-                                avg_volume: float = None) -> bool:
+                                avg_volume: float = None, detailed_position_desc: str = None) -> bool:
     """Send incremental alert for additional 5% moves"""
     try:
         # Initialize Slack webhook
         if not Config.SLACK_WEBHOOK_URL:
             raise NotificationError("Slack webhook URL not configured")
         
-        message_body = format_alert_message(ticker, current_percent, prev_close, current_price, volume, avg_volume, is_incremental=True, last_percent=last_percent)
+        message_body = format_alert_message(ticker, current_percent, prev_close, current_price, volume, avg_volume, is_incremental=True, last_percent=last_percent, position_details=detailed_position_desc)
         
         logger.info(f"📱 Sending Slack incremental alert for {ticker}: {message_body}")
         

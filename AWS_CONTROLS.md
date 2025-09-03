@@ -97,12 +97,7 @@ aws lambda create-function \
 # Create deployment zip (excluding unnecessary files)
 zip -r SchwabAlerts-app.zip . -x "python/*" "__pycache__/*"
 
-# Method 1: Direct Lambda update
-aws lambda update-function-code \
-  --function-name SchwabAlerts \
-  --zip-file fileb://SchwabAlerts-app.zip
-
-# Method 2: Upload to S3 then update Lambda (recommended for larger files)
+# Upload to S3 then update Lambda (recommended for larger files)
 aws s3 cp SchwabAlerts-app.zip s3://schwab-alerts-code/SchwabAlerts-app.zip
 aws lambda update-function-code \
   --function-name SchwabAlerts \
@@ -202,17 +197,11 @@ aws lambda add-permission \
 
 ### Clear Specific Ticker Alerts
 ```bash
-# Clear FN alerts only (allows re-alerting for FN)
-aws dynamodb scan \
-  --table-name schwab-alerts \
-  --projection-expression 'ticker_date' \
-  --query "Items[?starts_with(ticker_date.S, \`FN\`)].ticker_date.S" \
-  --output text | tr '\t' '\n' | while read -r k; do \
-    aws dynamodb delete-item \
-      --table-name schwab-alerts \
-      --key "{\"ticker_date\":{\"S\":\"$k\"}}"; \
-    echo "Deleted $k"; \
-  done
+# Clear alerts for specific stock (replace AAPL with your ticker)
+aws dynamodb scan --table-name AlertState --filter-expression "begins_with(ticker_date, :ticker)" --expression-attribute-values '{":ticker":{"S":"AAPL#"}}' --projection-expression 'ticker_date' --query "Items[].ticker_date.S" --output text | tr '\t' '\n' | xargs -I {} aws dynamodb delete-item --table-name AlertState --key '{"ticker_date":{"S":"{}"}}'
+
+# Clear all today's alerts (approximate - clears recent records)
+aws dynamodb scan --table-name AlertState --projection-expression 'ticker_date' --query "Items[].ticker_date.S" --output text | tr '\t' '\n' | xargs -I {} aws dynamodb delete-item --table-name AlertState --key '{"ticker_date":{"S":"{}"}}'
 ```
 
 ### Clear All Alert Records

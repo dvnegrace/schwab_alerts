@@ -167,6 +167,9 @@ class AlertChecker:
                         # Get alert directions based on position types (calls = up, puts = down)
                         alert_directions = position.get_alert_directions()
                         
+                        # Debug logging for alert direction logic
+                        logger.info(f"{ticker} alert_directions: {alert_directions}, percent_change: {percent_change}")
+                        
                         # Get last alerted percent and timestamp for this ticker
                         last_alerted_percent = 0
                         last_alert_timestamp = None
@@ -229,7 +232,7 @@ class AlertChecker:
                                 alert_count = alert_status['alert_count'] + 1
                                 
                                 # Retrigger is handled in basic_alerts by resetting last_alerted_percent
-                                if "RETRIGGER" in alert_reason:
+                                if "RETRIGGER" in basic_reason:
                                     should_alert = True
                                     alert_type = "retrigger"
                                     logger.info(f"{ticker}: Retrigger alert #{alert_count} after cooldown - {percent_change:.2f}%")
@@ -245,8 +248,12 @@ class AlertChecker:
                                         results['skipped_already_alerted'] += 1
                                         continue
                         else:
-                            # Local testing mode - always alert
-                            should_alert = True
+                            # Local testing mode - check direction logic
+                            should_alert = False
+                            if 'up' in alert_directions and percent_change > 0:
+                                should_alert = True  # CALL positions alert on UP moves
+                            elif 'down' in alert_directions and percent_change < 0:
+                                should_alert = True  # PUT positions alert on DOWN moves
                         
                         if should_alert:
                             # Handle local testing mode
@@ -392,7 +399,8 @@ class AlertChecker:
                                             prev_close=snapshot['prev_close'],
                                             current_price=snapshot['current_price'],
                                             volume=None,
-                                            avg_volume=None
+                                            avg_volume=None,
+                                            detailed_position_desc=detailed_position_desc
                                         )
                                     else:
                                         alert_result['slack_sent'] = slack_service.send_slack_alert(
@@ -400,7 +408,8 @@ class AlertChecker:
                                             prev_close=snapshot['prev_close'],
                                             current_price=snapshot['current_price'],
                                             volume=None,
-                                            avg_volume=None
+                                            avg_volume=None,
+                                            detailed_position_desc=detailed_position_desc
                                         )
                                 except Exception as e:
                                     alert_result['errors'].append(f"Slack: {e}")
