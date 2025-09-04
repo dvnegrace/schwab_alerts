@@ -14,12 +14,7 @@ class PositionSummary:
         self.positions = []  # Store detailed position objects
     
     def add_position(self, put_call: str, qty: float, side: str, position_details: 'OptionsPosition' = None):
-        """Add a position to the summary - ONLY if quantity is negative (short/sold positions)"""
-        # Skip positions with positive quantities (long positions) - we only monitor short positions
-        if qty > 0:
-            logger.debug(f"Skipping long position: {put_call} qty={qty} (only monitoring short positions)")
-            return
-            
+        """Add a position to the summary"""
         self.total_positions += 1
         
         # Store detailed position if provided
@@ -175,11 +170,7 @@ class JSONProcessor:
                     
                     underlying = underlying.upper().strip()
                     
-                    # Create position summary if not exists
-                    if underlying not in position_summaries:
-                        position_summaries[underlying] = PositionSummary(underlying)
-                    
-                    # Extract position details
+                    # Extract position details first to check quantity
                     put_call = item.get('Put/Call', '').upper().strip()
                     side = item.get('Side', '').strip()
                     
@@ -187,6 +178,15 @@ class JSONProcessor:
                         qty = float(item.get('Qty', 0))
                     except (ValueError, TypeError):
                         qty = 0
+                    
+                    # Skip positive quantities (long positions) - we only monitor short positions
+                    if qty > 0:
+                        logger.debug(f"Skipping long position: {underlying} {put_call} qty={qty}")
+                        continue
+                    
+                    # Create position summary if not exists (only for short positions)
+                    if underlying not in position_summaries:
+                        position_summaries[underlying] = PositionSummary(underlying)
                     
                     # Add position to summary
                     if put_call in ['PUT', 'CALL']:
