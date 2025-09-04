@@ -63,7 +63,7 @@ class PositionSummary:
         
         return directions
     
-    def get_detailed_position_description(self) -> str:
+    def get_detailed_position_description(self, current_price: float = None, prev_close: float = None) -> str:
         """Generate a detailed description of positions with strikes, expirations, and quantities"""
         if not self.positions:
             return "No position details available"
@@ -86,16 +86,32 @@ class PositionSummary:
             # Format strike price
             strike_str = f"{position.strike:.0f}" if position.strike == int(position.strike) else f"{position.strike:.2f}"
             
+            # Calculate OTM percentages if prices are available
+            otm_info = ""
+            if current_price and prev_close:
+                # Calculate OTM % (positive = OTM, negative = ITM)
+                if position.put_call.upper() == "CALL":
+                    prev_otm = ((position.strike - prev_close) / prev_close) * 100
+                    curr_otm = ((position.strike - current_price) / current_price) * 100
+                else:  # PUT
+                    prev_otm = ((prev_close - position.strike) / prev_close) * 100
+                    curr_otm = ((current_price - position.strike) / current_price) * 100
+                
+                otm_info = f" || OTM: Previously {prev_otm:+.2f}%, Now {curr_otm:+.2f}%"
+            
+            # Format trade price
+            trade_price_str = f" || Trade: ${position.avg_price:.2f}"
+            
             # Create position description
             option_type = position.put_call[0]  # "P" or "C"
-            position_line = f"{formatted_exp} {strike_str}{option_type} || Qty: {qty_str}"
+            position_line = f"• {formatted_exp} {strike_str}{option_type} || Qty: {qty_str}{otm_info}{trade_price_str}"
             position_lines.append(position_line)
         
         if len(position_lines) == 1:
-            return f"ONE position at risk: {position_lines[0]} ||"
+            return f"ONE position at risk:\n{position_lines[0]}"
         else:
-            positions_text = " || ".join(position_lines)
-            return f"{len(position_lines)} positions at risk: {positions_text} ||"
+            positions_text = "\n".join(position_lines)
+            return f"{len(position_lines)} positions at risk:\n{positions_text}"
     
     def __repr__(self):
         return f"PositionSummary(underlying='{self.underlying}', {self.get_position_description()})"

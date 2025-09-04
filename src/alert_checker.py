@@ -136,7 +136,6 @@ class AlertChecker:
                 try:
                     ticker = position.underlying
                     position_desc = position.get_position_description()
-                    detailed_position_desc = position.get_detailed_position_description()
                     
                     # Skip if we already processed this ticker
                     if ticker in processed_tickers:
@@ -154,6 +153,11 @@ class AlertChecker:
                     
                     snapshot = snapshots[normalized_ticker]
                     percent_change = snapshot['todays_change_perc']
+                    current_price = snapshot.get('current_price')
+                    prev_close = snapshot.get('prev_close')
+                    
+                    # Get detailed position description with price data
+                    detailed_position_desc = position.get_detailed_position_description(current_price, prev_close)
                     
                     logger.debug(f"{ticker}: {percent_change:+.2f}% (prev: ${snapshot['prev_close']} → current: ${snapshot['current_price']})")
                     
@@ -308,13 +312,13 @@ class AlertChecker:
                                     telegram_msg = format_alert_message(
                                         ticker, percent_change, snapshot['prev_close'], snapshot['current_price'], 
                                         None, None, is_incremental=True, last_percent=last_alerted_percent,
-                                        position_details=detailed_position_desc
+                                        position_details=detailed_position_desc, total_calls=position.calls, total_puts=position.puts
                                     )
                                     voice_msg = f"Alert: {ticker} has increased another {percent_change - last_alerted_percent:.1f} percent, now at {percent_change:.1f} percent total."
                                 else:
                                     telegram_msg = format_alert_message(
                                         ticker, percent_change, snapshot['prev_close'], snapshot['current_price'], 
-                                        None, None, position_details=detailed_position_desc
+                                        None, None, position_details=detailed_position_desc, total_calls=position.calls, total_puts=position.puts
                                     )
                                     direction = "up" if percent_change > 0 else "down"
                                     voice_msg = f"Alert: {ticker} is {direction} {abs(percent_change):.1f} percent."
@@ -362,7 +366,9 @@ class AlertChecker:
                                             current_price=snapshot['current_price'],
                                             volume=None,
                                             avg_volume=None,
-                                            detailed_position_desc=detailed_position_desc
+                                            detailed_position_desc=detailed_position_desc,
+                                            total_calls=position.calls,
+                                            total_puts=position.puts
                                         )
                                     else:
                                         alert_result['sms_sent'] = telegram_service.send_telegram_alert(
@@ -371,7 +377,9 @@ class AlertChecker:
                                             current_price=snapshot['current_price'],
                                             volume=None,
                                             avg_volume=None,
-                                            detailed_position_desc=detailed_position_desc
+                                            detailed_position_desc=detailed_position_desc,
+                                            total_calls=position.calls,
+                                            total_puts=position.puts
                                         )
                                 except Exception as e:
                                     alert_result['errors'].append(f"Telegram: {e}")
@@ -400,7 +408,9 @@ class AlertChecker:
                                             current_price=snapshot['current_price'],
                                             volume=None,
                                             avg_volume=None,
-                                            detailed_position_desc=detailed_position_desc
+                                            detailed_position_desc=detailed_position_desc,
+                                            total_calls=position.calls,
+                                            total_puts=position.puts
                                         )
                                     else:
                                         alert_result['slack_sent'] = slack_service.send_slack_alert(
@@ -409,7 +419,9 @@ class AlertChecker:
                                             current_price=snapshot['current_price'],
                                             volume=None,
                                             avg_volume=None,
-                                            detailed_position_desc=detailed_position_desc
+                                            detailed_position_desc=detailed_position_desc,
+                                            total_calls=position.calls,
+                                            total_puts=position.puts
                                         )
                                 except Exception as e:
                                     alert_result['errors'].append(f"Slack: {e}")

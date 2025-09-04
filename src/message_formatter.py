@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 def format_alert_message(ticker: str, percent_change: float, prev_close: float = None, 
                         current_price: float = None, volume: int = None, avg_volume: float = None,
                         is_incremental: bool = False, last_percent: float = None, 
-                        position_details: str = None) -> str:
+                        position_details: str = None, total_calls: int = 0, total_puts: int = 0) -> str:
     """Format alert message for initial or incremental alerts"""
     
     # Get current time in EST
@@ -35,7 +35,8 @@ def format_alert_message(ticker: str, percent_change: float, prev_close: float =
         
         # Add position details if provided
         if position_details:
-            message_body += f"\n\nWe have {position_details}"
+            # Use the detailed position description that includes OTM data and bullet points
+            message_body += f"\n\n{position_details}"
     else:
         # Fallback format if price data not available
         if is_incremental:
