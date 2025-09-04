@@ -136,7 +136,6 @@ class AlertChecker:
                 try:
                     ticker = position.underlying
                     position_desc = position.get_position_description()
-                    detailed_position_desc = position.get_detailed_position_description()
                     
                     # Skip if we already processed this ticker
                     if ticker in processed_tickers:
@@ -154,6 +153,11 @@ class AlertChecker:
                     
                     snapshot = snapshots[normalized_ticker]
                     percent_change = snapshot['todays_change_perc']
+                    current_price = snapshot.get('current_price')
+                    prev_close = snapshot.get('prev_close')
+                    
+                    # Get detailed position description with price data
+                    detailed_position_desc = position.get_detailed_position_description(current_price, prev_close)
                     
                     logger.debug(f"{ticker}: {percent_change:+.2f}% (prev: ${snapshot['prev_close']} → current: ${snapshot['current_price']})")
                     
