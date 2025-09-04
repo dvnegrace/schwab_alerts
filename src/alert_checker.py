@@ -242,8 +242,8 @@ class AlertChecker:
                                     logger.info(f"{ticker}: Retrigger alert #{alert_count} after cooldown - {percent_change:.2f}%")
                                 else:
                                     # Standard incremental alert check
-                                    percent_increase_since_last = percent_change - last_alerted_percent
-                                    if percent_increase_since_last >= Config.ALERT_THRESHOLD_PERCENT:
+                                    percent_increase_since_last = abs(percent_change) - abs(last_alerted_percent)
+                                    if percent_increase_since_last >= Config.ALERT_INCREMENTAL_THRESHOLD:
                                         should_alert = True
                                         alert_type = "incremental"
                                         logger.info(f"{ticker}: Incremental alert #{alert_count} - was {last_alerted_percent:.2f}%, now {percent_change:.2f}%")

@@ -14,7 +14,12 @@ class PositionSummary:
         self.positions = []  # Store detailed position objects
     
     def add_position(self, put_call: str, qty: float, side: str, position_details: 'OptionsPosition' = None):
-        """Add a position to the summary"""
+        """Add a position to the summary - ONLY if quantity is negative (short/sold positions)"""
+        # Skip positions with positive quantities (long positions) - we only monitor short positions
+        if qty > 0:
+            logger.debug(f"Skipping long position: {put_call} qty={qty} (only monitoring short positions)")
+            return
+            
         self.total_positions += 1
         
         # Store detailed position if provided
