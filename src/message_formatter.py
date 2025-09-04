@@ -35,16 +35,8 @@ def format_alert_message(ticker: str, percent_change: float, prev_close: float =
         
         # Add position details if provided
         if position_details:
-            position_counts = ""
-            if total_calls > 0 or total_puts > 0:
-                count_parts = []
-                if total_calls > 0:
-                    count_parts.append(f"{total_calls} call{'s' if total_calls != 1 else ''}")
-                if total_puts > 0:
-                    count_parts.append(f"{total_puts} put{'s' if total_puts != 1 else ''}")
-                position_counts = f" ({' and '.join(count_parts)})"
-            
-            message_body += f"\n\nWe have {position_details}{position_counts}"
+            # Use the detailed position description that includes OTM data and bullet points
+            message_body += f"\n\n{position_details}"
     else:
         # Fallback format if price data not available
         if is_incremental:
