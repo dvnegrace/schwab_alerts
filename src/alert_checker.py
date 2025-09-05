@@ -225,11 +225,12 @@ class AlertChecker:
                             alert_status = self.alert_state.get_alert_status(ticker, snapshot['prev_close'])
                             
                             if alert_status is None:
-                                # Never alerted before
-                                should_alert = True
+                                # Never alerted before - but still respect direction check
+                                should_alert = should_alert_this_direction
                                 alert_type = "initial"
                                 alert_count = 1
-                                logger.info(f"{ticker}: First alert at {percent_change:.2f}%")
+                                if should_alert:
+                                    logger.info(f"{ticker}: First alert at {percent_change:.2f}%")
                             else:
                                 # Previously alerted - check if should alert again
                                 last_alerted_percent = alert_status['last_alerted_percent']
@@ -237,19 +238,26 @@ class AlertChecker:
                                 
                                 # Retrigger is handled in basic_alerts by resetting last_alerted_percent
                                 if "RETRIGGER" in basic_reason:
-                                    should_alert = True
+                                    should_alert = should_alert_this_direction  # Still respect direction
                                     alert_type = "retrigger"
-                                    logger.info(f"{ticker}: Retrigger alert #{alert_count} after cooldown - {percent_change:.2f}%")
+                                    if should_alert:
+                                        logger.info(f"{ticker}: Retrigger alert #{alert_count} after cooldown - {percent_change:.2f}%")
                                 else:
-                                    # Standard incremental alert check
-                                    percent_increase_since_last = abs(percent_change) - abs(last_alerted_percent)
-                                    if percent_increase_since_last >= Config.ALERT_INCREMENTAL_THRESHOLD:
-                                        should_alert = True
-                                        alert_type = "incremental"
-                                        logger.info(f"{ticker}: Incremental alert #{alert_count} - was {last_alerted_percent:.2f}%, now {percent_change:.2f}%")
+                                    # Standard incremental alert check - only if direction matched
+                                    if should_alert_this_direction:
+                                        percent_increase_since_last = abs(percent_change) - abs(last_alerted_percent)
+                                        if percent_increase_since_last >= Config.ALERT_INCREMENTAL_THRESHOLD:
+                                            should_alert = True
+                                            alert_type = "incremental"
+                                            logger.info(f"{ticker}: Incremental alert #{alert_count} - was {last_alerted_percent:.2f}%, now {percent_change:.2f}%")
+                                        else:
+                                            should_alert = False
+                                            logger.debug(f"{ticker}: No incremental alert - already alerted at {last_alerted_percent:.2f}%")
+                                            results['skipped_already_alerted'] += 1
+                                            continue
                                     else:
-                                        logger.debug(f"{ticker}: No alert - already alerted at {last_alerted_percent:.2f}%")
-                                        results['skipped_already_alerted'] += 1
+                                        should_alert = False
+                                        logger.debug(f"{ticker}: No alert - wrong direction for position type")
                                         continue
                         else:
                             # Local testing mode - check direction logic
