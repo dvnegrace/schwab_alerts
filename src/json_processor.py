@@ -233,7 +233,14 @@ class JSONProcessor:
             if not position_summaries:
                 raise CSVParsingError("No valid positions found in JSON")
             
-            summaries_list = list(position_summaries.values())
+            # Filter out empty position summaries (no actual positions added)
+            summaries_list = [
+                summary for summary in position_summaries.values() if summary.total_positions > 0
+            ]
+            
+            if not summaries_list:
+                raise CSVParsingError("No valid short positions found in JSON (all positions were long or invalid)")
+            
             logger.info(f"Successfully parsed {len(summaries_list)} unique underlying positions from JSON ({row_count} total items)")
             
             # Log position details for debugging
